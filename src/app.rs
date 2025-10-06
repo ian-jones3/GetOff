@@ -10,6 +10,7 @@ use timer::Timer;
 pub enum AppState {
     Title,
     TimerInput,
+    TimerDisplay,
     Exit,
 }
 
@@ -38,17 +39,21 @@ impl App {
         }
     }
 
-    pub fn set_timer(mut self, time_in_mins: i64) -> Result<(), io::Error> {
+    pub fn set_timer(&mut self, time_in_mins: i64) -> Result<(), io::Error> {
         // in long term, should check to make sure requested timer is not
         // absurdly long. If a very long timer is detected, logically would
         // flip a flag that causes a pop up to be drawn asking if user really
         // wants such a long timer.
-
+        // For now, just a very simple check that prints to terminal.
+        match time_in_mins {
+            ..=0 => return Err(Error::other("ERROR: NEGATIVE/0 VAL PASSED TO SET_TIMER")),
+            600.. => println!("Wow! {time_in_mins} is a very long time!"),
+            _ => self.timer_length = Some(TimeDelta::minutes(time_in_mins)),
+        }
         // ensure that time in mins i64 is never negative.
-        // The reason we're not using u64 is because TimeDelta minutes() takes
+        // The reason we're not using u64 is because TimeDelta minutes)() takes
         // an i64.
 
-        self.timer_length = Some(TimeDelta::minutes(time_in_mins));
         Ok(())
     }
 
