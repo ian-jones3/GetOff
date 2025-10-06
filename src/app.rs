@@ -18,11 +18,21 @@ pub enum AppState {
 
 pub enum EditableValue {
     Timer,
+    Applications,
+    Websites,
+    SavedApps,
+    SavedWebsites,
 }
 
 pub enum InputMode {
     Editing,
     NotEditing,
+}
+
+pub enum TriggerAction {
+    Shutdown,
+    Restart,
+    Warn,
 }
 
 pub struct App {
@@ -61,9 +71,6 @@ impl App {
             600.. => println!("Wow! {time_in_mins} is a very long time!"),
             _ => self.timer_length = Some(TimeDelta::minutes(time_in_mins)),
         }
-        // ensure that time in mins i64 is never negative.
-        // The reason we're not using u64 is because TimeDelta minutes)() takes
-        // an i64.
 
         Ok(())
     }
@@ -79,6 +86,7 @@ impl App {
                 self.timer
                     .schedule_with_delay(*time_delta, || App::execute_shutdown())
                     .ignore(); // ignore the guard so the timer doesn't cancel
+                self.current_state = AppState::TimerDisplay;
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO START TIMER WITH NO DURATION SET");
@@ -99,15 +107,15 @@ impl App {
 
     pub fn execute_shutdown() {
         println!("Shutdown sequence successfully executed");
-        ratatui::restore();
-        exit(0)
+        // ratatui::restore();
+        // exit(0);
 
         // Below code will actually shut down the computer, do not use in testing
         // unless running through a VM!
-        // match shutdown() {
-        //     Ok(_) => println!("Successfully shutting down"),
-        //     Err(error) => println!("Shutdown failure, Error: {error}"),
-        // }
+        match shutdown() {
+            Ok(_) => println!("Successfully shutting down"),
+            Err(error) => println!("Shutdown failure, Error: {error}"),
+        }
     }
 
     pub fn edit(&mut self) {

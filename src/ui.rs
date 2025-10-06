@@ -1,16 +1,12 @@
 use std::rc::Rc;
 
 use crate::App;
-use chrono::TimeDelta;
 use ratatui::{
     Frame,
     layout::*,
     style::{self, Style},
-    symbols::line::VERTICAL,
     widgets::{Block, Borders, Paragraph, block::Title},
 };
-use tui_input::Input;
-use tui_input::backend::crossterm::EventHandler;
 
 pub fn render_ui(frame: &mut Frame, app: &App) {
     let title_block = Block::default()
@@ -60,7 +56,11 @@ pub fn render_ui(frame: &mut Frame, app: &App) {
 
 fn render_time_left(frame: &mut Frame, app: &App, layout: &Rc<[Rect]>) {
     let time = match app.timer_length {
-        Some(delta) => (delta.as_seconds_f32() / 60.0).to_string(),
+        Some(delta) => {
+            let mut res = (delta.as_seconds_f32() / 60.0).to_string();
+            res.push_str(" minutes");
+            res
+        }
         None => String::from("No timer started."),
     };
     let timer_display = Paragraph::new(time)

@@ -30,9 +30,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), Box<dyn Error>> {
     loop {
         // Draw the frame
-        let draw_result = terminal.draw(|f| render_ui(f, app)) else {
-            panic!("ERROR: FAILED TO DRAW FRAME");
-        };
+        let draw_result = terminal.draw(|f| render_ui(f, app));
+        match draw_result {
+            Ok(_) => {}
+            Err(error) => panic!("ERROR: FAILED TO DRAW FRAME: {error}"),
+        }
 
         // Key event handling
         let event = event::read()?;
