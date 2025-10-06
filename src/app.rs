@@ -1,11 +1,13 @@
 use chrono::TimeDelta;
-use std::sync::Arc;
 use std::{
     io::{self, Error},
     process::exit,
 };
+
 use system_shutdown::shutdown;
 use timer::Timer;
+use tui_input::Input;
+use tui_input::backend::crossterm::EventHandler;
 
 pub enum AppState {
     Title,
@@ -18,12 +20,19 @@ pub enum EditableValue {
     Timer,
 }
 
+pub enum InputMode {
+    Editing,
+    NotEditing,
+}
+
 pub struct App {
     pub current_state: AppState,
     pub timer: Timer,
     pub timer_length: Option<TimeDelta>,
     pub editing: Option<EditableValue>,
     pub shutdown: bool,
+    pub input: Input,
+    pub input_mode: InputMode,
 }
 
 impl App {
@@ -36,6 +45,8 @@ impl App {
             timer_length: None,
             editing: None,
             shutdown: false,
+            input: Input::default(),
+            input_mode: InputMode::NotEditing,
         }
     }
 
@@ -62,11 +73,12 @@ impl App {
     //
     // Might need a return type for error handling, need to look into
     // how timer operations work.
-    pub fn start_timer(self: &Arc<Self>) {
+    pub fn start_timer(self: &mut Self) {
         match &self.timer_length {
             Some(time_delta) => {
                 self.timer
-                    .schedule_with_delay(*time_delta, || App::execute_shutdown());
+                    .schedule_with_delay(*time_delta, || App::execute_shutdown())
+                    .ignore(); // ignore the guard so the timer doesn't cancel
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO START TIMER WITH NO DURATION SET");
@@ -87,6 +99,7 @@ impl App {
 
     pub fn execute_shutdown() {
         println!("Shutdown sequence successfully executed");
+        ratatui::restore();
         exit(0)
 
         // Below code will actually shut down the computer, do not use in testing
@@ -95,5 +108,13 @@ impl App {
         //     Ok(_) => println!("Successfully shutting down"),
         //     Err(error) => println!("Shutdown failure, Error: {error}"),
         // }
+    }
+
+    pub fn edit(&mut self) {
+        self.input_mode = InputMode::Editing;
+    }
+
+    pub fn stop_edit(&mut self) {
+        self.input_mode = InputMode::NotEditing;
     }
 }

@@ -1,12 +1,17 @@
 mod app;
 mod ui;
 use app::*;
+use tui_input::backend::crossterm::EventHandler;
 use ui::*;
 
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use ratatui::{Terminal, prelude::Backend};
+// Remember to use crossterm through ratatui's crate!
+use ratatui::{
+    Terminal,
+    crossterm::event::{self, Event, KeyCode},
+    prelude::Backend,
+};
+
 use std::error::Error;
-use std::io::{self};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // initialize a new DefaultTerminal
@@ -24,22 +29,55 @@ fn main() -> Result<(), Box<dyn Error>> {
 // Main loop
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), Box<dyn Error>> {
     loop {
-        terminal.draw(|f| ui(f, app));
-        if let Event::Key(key) = event::read()? {
+        // Draw the frame
+        let draw_result = terminal.draw(|f| render_ui(f, app)) else {
+            panic!("ERROR: FAILED TO DRAW FRAME");
+        };
+
+        // Key event handling
+        let event = event::read()?;
+        if let Event::Key(key) = event {
             if key.kind == event::KeyEventKind::Press {
-                match key.code {
-                    KeyCode::Char('q') => {
-                        println!("Quit out detected, performing a clean exit:");
-                        break;
-                    }
-                    KeyCode::Char(_) => {
-                        ratatui::restore();
-                        App::execute_shutdown();
-                    }
-                    _ => println!("not a keypress, ignoring"),
+                match app.input_mode {
+                    InputMode::NotEditing => match key.code {
+                        KeyCode::Char('q') => {
+                            println!("Quit out detected, performing a clean exit:");
+                            break;
+                        }
+                        KeyCode::Char('i') => {
+                            app.edit();
+                        }
+                        _ => {}
+                    },
+                    InputMode::Editing => match key.code {
+                        KeyCode::Esc => app.stop_edit(),
+                        KeyCode::Enter => {
+                            let time = app.input.value().parse::<i64>()?;
+                            app.set_timer(time)?;
+                            app.start_timer();
+                            app.stop_edit();
+                        }
+                        // by nesting this handle_event call in braces
+                        // and using ; we can contain the return inside
+                        // this scope, preventing a type mismatch in the
+                        // match statement.
+                        _ => {
+                            app.input.handle_event(&event);
+                        }
+                    },
                 }
             }
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Check that terminal.draw doesn't error out
+    // when using our ui function
+    fn draw_works() {}
 }
