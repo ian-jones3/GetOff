@@ -69,6 +69,17 @@ impl App {
         }
     }
 
+    pub fn time_left(&self) -> &TimeDelta {
+        match &self.timer_length {
+            Some(time_delta) => time_delta,
+            None => {
+                eprint!("ERROR: ATTEMPTED TO RETURN TIME LEFT WHEN NO TIMER RUNNING");
+                // If this ever happens its a goof so bad happened it should definitely crash.
+                panic!()
+            }
+        }
+    }
+
     pub fn execute_shutdown() {
         println!("Shutdown sequence successfully executed");
         exit(0)
