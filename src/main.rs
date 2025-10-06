@@ -1,84 +1,85 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+mod app;
+mod ui;
+use app::*;
+use tui_input::backend::crossterm::EventHandler;
+use ui::*;
+
+// Remember to use crossterm through ratatui's crate!
 use ratatui::{
-    DefaultTerminal, Frame, Terminal,
-    buffer::Buffer,
-    layout::Rect,
-    style::Stylize,
-    symbols::border,
-    text::{Line, Text},
-    widgets::{Block, Paragraph, Widget},
+    Terminal,
+    crossterm::event::{self, Event, KeyCode},
+    prelude::Backend,
 };
-use std::io;
 
-// Struct that represents the state of the app.
-#[derive(Debug, Default)]
-pub struct App {
-    exit: bool,
-}
+use std::error::Error;
 
-impl App {
-    // Responsible for core loop of drawing frames for the application.
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
-        // continue drawing frames until exit flag is true
-        while !self.exit {
-            terminal.draw(|frame| self.draw(frame))?;
-            self.handle_events()?;
-        }
-        Ok(())
-    }
-
-    // draw a frame using render_widget method
-    fn draw(&self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
-    }
-
-    // function to handle events, currently only handles key presses.
-    fn handle_events(&mut self) -> io::Result<()> {
-        match event::read()? {
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    // handle key presses by the user,
-    // for now treats all key presses the same way by exiting.
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char(_) => self.exit(),
-            _ => {}
-        }
-    }
-
-    fn exit(&mut self) {
-        self.exit = true;
-    }
-}
-
-impl Widget for &App {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let header = Line::from(" GET OFF! ".bold().italic());
-        let block = Block::bordered()
-            .title(header.centered())
-            .border_set(border::DOUBLE);
-
-        // render everything with a paragraph
-        Paragraph::new("This getoff app sure will be cool once it's done!")
-            .block(block)
-            .render(area, buf);
-    }
-}
-
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn Error>> {
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
 
     // Start core application cycle
-    let app_result = App::default().run(&mut terminal);
+    let mut app = App::new();
+    let mut app_result = run_app(&mut terminal, &mut app);
 
-    // restore terminal to original state and resurn
+    // restore terminal to original state and return
     ratatui::restore();
-    app_result
+    Ok(())
+}
+
+// Main loop
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), Box<dyn Error>> {
+    loop {
+        // Draw the frame
+        let draw_result = terminal.draw(|f| render_ui(f, app));
+        match draw_result {
+            Ok(_) => {}
+            Err(error) => panic!("ERROR: FAILED TO DRAW FRAME: {error}"),
+        }
+
+        // Key event handling
+        let event = event::read()?;
+        if let Event::Key(key) = event {
+            if key.kind == event::KeyEventKind::Press {
+                match app.input_mode {
+                    InputMode::NotEditing => match key.code {
+                        KeyCode::Char('q') => {
+                            println!("Quit out detected, performing a clean exit:");
+                            break;
+                        }
+                        KeyCode::Char('i') => {
+                            app.edit();
+                        }
+                        _ => {}
+                    },
+                    InputMode::Editing => match key.code {
+                        KeyCode::Esc => app.stop_edit(),
+                        KeyCode::Enter => {
+                            let time = app.input.value().parse::<i64>()?;
+                            app.set_timer(time)?;
+                            app.start_timer();
+                            app.stop_edit();
+                        }
+                        // by nesting this handle_event call in braces
+                        // and using ; we can contain the return inside
+                        // this scope, preventing a type mismatch in the
+                        // match statement.
+                        _ => {
+                            app.input.handle_event(&event);
+                        }
+                    },
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Check that terminal.draw doesn't error out
+    // when using our ui function
+    fn draw_works() {}
 }
