@@ -3,7 +3,6 @@ mod timer_display;
 mod title_screen;
 mod ui;
 use app::*;
-use tui_input::backend::crossterm::EventHandler;
 use tui_widgets::prompts::State;
 use ui::*;
 
@@ -83,14 +82,4 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    // Check that terminal.draw doesn't error out
-    // when using our ui function
-    fn draw_works() {}
 }

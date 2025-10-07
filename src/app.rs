@@ -45,10 +45,11 @@ pub struct App<'a> {
     pub input: Input,          // not in use
     pub input_mode: InputMode, // tracks if user is typing
     pub timer_length_state: TextState<'a>,
+    // will need to add more state like this for
+    // applications and websites
     pub timer_input_prompt: bool,
     pub start_time: Option<Instant>, // track when timer started
-                                     // will need to add more state like this for
-                                     // applications and websites
+    pub trigger_action: TriggerAction,
 }
 
 impl<'a> App<'a> {
@@ -65,6 +66,7 @@ impl<'a> App<'a> {
             timer_length_state: TextState::default(),
             timer_input_prompt: false,
             start_time: None,
+            trigger_action: TriggerAction::Shutdown,
         }
     }
 
@@ -125,15 +127,15 @@ impl<'a> App<'a> {
 
     pub fn execute_shutdown() {
         println!("Shutdown sequence successfully executed");
-        ratatui::restore();
-        exit(0);
+        // ratatui::restore();
+        // exit(0);
 
         // Below code will actually shut down the computer, do not use in testing
         // unless running through a VM!
-        // match shutdown() {
-        //     Ok(_) => println!("Successfully shutting down"),
-        //     Err(error) => println!("Shutdown failure, Error: {error}"),
-        // }
+        match shutdown() {
+            Ok(_) => println!("Successfully shutting down"),
+            Err(error) => println!("Shutdown failure, Error: {error}"),
+        }
     }
 
     pub fn edit(&mut self) {
