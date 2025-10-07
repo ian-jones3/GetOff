@@ -103,21 +103,21 @@ impl<'a> App<'a> {
         }
     }
 
-    // UNTESTED
     pub fn time_left(&self) -> TimeDelta {
         match &self.timer_length {
             Some(time_delta) => {
-                // We are trying to TimeDelta - TimeDelta.
-                // Convert std::time:instant to TimeDelta
-                let elapsed =
-                    i64::try_from(self.start_time.unwrap().elapsed().as_secs()).unwrap() / 60;
-                let elapsed_time_delta = TimeDelta::minutes(elapsed);
-                let returned = time_delta.checked_sub(&elapsed_time_delta).unwrap();
-                returned
+                let total_seconds = time_delta.num_seconds();
+                let elapsed_seconds = self.start_time.unwrap().elapsed().as_secs() as i64;
+                let remaining_seconds = total_seconds - elapsed_seconds;
+
+                if remaining_seconds > 0 {
+                    TimeDelta::seconds(remaining_seconds)
+                } else {
+                    TimeDelta::zero()
+                }
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO RETURN TIME LEFT WHEN NO TIMER RUNNING");
-                // If this ever happens its a goof so bad happened it should definitely crash.
                 panic!()
             }
         }

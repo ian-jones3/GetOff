@@ -15,6 +15,7 @@ use ratatui::{
 };
 
 use std::error::Error;
+use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // initialize a new DefaultTerminal
@@ -40,42 +41,43 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
         }
 
         // Key event handling
-        let event = event::read()?;
-        if let Event::Key(key) = event {
-            if key.kind == event::KeyEventKind::Press {
-                match app.input_mode {
-                    InputMode::NotEditing => match key.code {
-                        KeyCode::Char('q') => {
-                            println!("Quit out detected, performing a clean exit:");
-                            break;
-                        }
-                        KeyCode::Char('t') => {
-                            app.timer_input_prompt = true;
-                            app.current_state = AppState::TimerDisplay;
-                            app.edit();
-                        }
-                        _ => {}
-                    },
-                    InputMode::Editing => match key.code {
-                        KeyCode::Esc => app.stop_edit(),
-                        KeyCode::Enter => {
-                            // pass state to set_timer
-                            let time = app.timer_length_state.value().parse::<i64>()?;
-                            app.set_timer(time)?;
-                            app.start_timer();
-                            app.stop_edit();
-                            app.timer_input_prompt = false;
-                        }
-                        // by nesting this handle_event call in braces
-                        // and using ; we can contain the return inside
-                        // this scope, preventing a type mismatch in the
-                        // match statement.
-                        _ => {
-                            // only functional for modifying timer state
-                            // currently
-                            app.timer_length_state.handle_key_event(key);
-                        }
-                    },
+        if event::poll(Duration::from_millis(15))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == event::KeyEventKind::Press {
+                    match app.input_mode {
+                        InputMode::NotEditing => match key.code {
+                            KeyCode::Char('q') => {
+                                println!("Quit out detected, performing a clean exit:");
+                                break;
+                            }
+                            KeyCode::Char('t') => {
+                                app.timer_input_prompt = true;
+                                app.current_state = AppState::TimerDisplay;
+                                app.edit();
+                            }
+                            _ => {}
+                        },
+                        InputMode::Editing => match key.code {
+                            KeyCode::Esc => app.stop_edit(),
+                            KeyCode::Enter => {
+                                // pass state to set_timer
+                                let time = app.timer_length_state.value().parse::<i64>()?;
+                                app.set_timer(time)?;
+                                app.start_timer();
+                                app.stop_edit();
+                                app.timer_input_prompt = false;
+                            }
+                            // by nesting this handle_event call in braces
+                            // and using ; we can contain the return inside
+                            // this scope, preventing a type mismatch in the
+                            // match statement.
+                            _ => {
+                                // only functional for modifying timer state
+                                // currently
+                                app.timer_length_state.handle_key_event(key);
+                            }
+                        },
+                    }
                 }
             }
         }
