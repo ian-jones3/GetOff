@@ -2,8 +2,11 @@ use chrono::TimeDelta;
 use std::{
     io::{self, Error},
     process::exit,
+    time::Duration,
 };
+use tui_widgets::prompts::TextState;
 
+use std::time::Instant;
 use system_shutdown::shutdown;
 use timer::Timer;
 use tui_input::Input;
@@ -11,7 +14,6 @@ use tui_input::backend::crossterm::EventHandler;
 
 pub enum AppState {
     Title,
-    TimerInput,
     TimerDisplay,
     Exit,
 }
@@ -35,28 +37,34 @@ pub enum TriggerAction {
     Warn,
 }
 
-pub struct App {
+pub struct App<'a> {
     pub current_state: AppState,
-    pub timer: Timer,
-    pub timer_length: Option<TimeDelta>,
+    pub timer: Timer,                    // Timer object
+    pub timer_length: Option<TimeDelta>, // timer length set by user
     pub editing: Option<EditableValue>,
-    pub shutdown: bool,
-    pub input: Input,
-    pub input_mode: InputMode,
+    pub input: Input,          // not in use
+    pub input_mode: InputMode, // tracks if user is typing
+    pub timer_length_state: TextState<'a>,
+    pub timer_input_prompt: bool,
+    pub start_time: Option<Instant>, // track when timer started
+                                     // will need to add more state like this for
+                                     // applications and websites
 }
 
-impl App {
+impl<'a> App<'a> {
     /// new()
     /// Instantiate the App state.
-    pub fn new() -> App {
+    pub fn new() -> App<'a> {
         App {
             current_state: AppState::Title,
             timer: Timer::new(),
             timer_length: None,
             editing: None,
-            shutdown: false,
             input: Input::default(),
             input_mode: InputMode::NotEditing,
+            timer_length_state: TextState::default(),
+            timer_input_prompt: false,
+            start_time: None,
         }
     }
 
@@ -86,7 +94,8 @@ impl App {
                 self.timer
                     .schedule_with_delay(*time_delta, || App::execute_shutdown())
                     .ignore(); // ignore the guard so the timer doesn't cancel
-                self.current_state = AppState::TimerDisplay;
+                //self.current_state = AppState::TimerDisplay;
+                self.start_time = Some(Instant::now());
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO START TIMER WITH NO DURATION SET");
@@ -94,9 +103,18 @@ impl App {
         }
     }
 
-    pub fn time_left(&self) -> &TimeDelta {
+    // UNTESTED
+    pub fn time_left(&self) -> TimeDelta {
         match &self.timer_length {
-            Some(time_delta) => time_delta,
+            Some(time_delta) => {
+                // We are trying to TimeDelta - TimeDelta.
+                // Convert std::time:instant to TimeDelta
+                let elapsed =
+                    i64::try_from(self.start_time.unwrap().elapsed().as_secs()).unwrap() / 60;
+                let elapsed_time_delta = TimeDelta::minutes(elapsed);
+                let returned = time_delta.checked_sub(&elapsed_time_delta).unwrap();
+                returned
+            }
             None => {
                 eprint!("ERROR: ATTEMPTED TO RETURN TIME LEFT WHEN NO TIMER RUNNING");
                 // If this ever happens its a goof so bad happened it should definitely crash.
@@ -107,15 +125,15 @@ impl App {
 
     pub fn execute_shutdown() {
         println!("Shutdown sequence successfully executed");
-        // ratatui::restore();
-        // exit(0);
+        ratatui::restore();
+        exit(0);
 
         // Below code will actually shut down the computer, do not use in testing
         // unless running through a VM!
-        match shutdown() {
-            Ok(_) => println!("Successfully shutting down"),
-            Err(error) => println!("Shutdown failure, Error: {error}"),
-        }
+        // match shutdown() {
+        //     Ok(_) => println!("Successfully shutting down"),
+        //     Err(error) => println!("Shutdown failure, Error: {error}"),
+        // }
     }
 
     pub fn edit(&mut self) {

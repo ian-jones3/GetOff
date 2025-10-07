@@ -1,7 +1,10 @@
 mod app;
+mod timer_display;
+mod title_screen;
 mod ui;
 use app::*;
 use tui_input::backend::crossterm::EventHandler;
+use tui_widgets::prompts::State;
 use ui::*;
 
 // Remember to use crossterm through ratatui's crate!
@@ -46,7 +49,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                             println!("Quit out detected, performing a clean exit:");
                             break;
                         }
-                        KeyCode::Char('i') => {
+                        KeyCode::Char('t') => {
+                            app.timer_input_prompt = true;
+                            app.current_state = AppState::TimerDisplay;
                             app.edit();
                         }
                         _ => {}
@@ -54,17 +59,21 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                     InputMode::Editing => match key.code {
                         KeyCode::Esc => app.stop_edit(),
                         KeyCode::Enter => {
-                            let time = app.input.value().parse::<i64>()?;
+                            // pass state to set_timer
+                            let time = app.timer_length_state.value().parse::<i64>()?;
                             app.set_timer(time)?;
                             app.start_timer();
                             app.stop_edit();
+                            app.timer_input_prompt = false;
                         }
                         // by nesting this handle_event call in braces
                         // and using ; we can contain the return inside
                         // this scope, preventing a type mismatch in the
                         // match statement.
                         _ => {
-                            app.input.handle_event(&event);
+                            // only functional for modifying timer state
+                            // currently
+                            app.timer_length_state.handle_key_event(key);
                         }
                     },
                 }
