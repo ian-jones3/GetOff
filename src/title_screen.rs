@@ -5,14 +5,8 @@ use ratatui::{
     Frame,
     layout::*,
     style::Style,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Padding, Paragraph},
 };
-
-// Potentially will store layout, need to figure out
-// if it will ever change.
-// struct title_screen {
-//     layout: Rc<[Rect]>,
-// }
 
 pub fn render_title_screen(frame: &mut Frame, app: &App) {
     let layout = build_layout(frame);
@@ -40,14 +34,22 @@ fn build_layout(frame: &Frame) -> Rc<[Rect]> {
 fn render_ascii(frame: &mut Frame, app: &App, layout: &Rc<[Rect]>) {
     let ascii_block = Block::default()
         .borders(Borders::ALL)
-        .style(Style::default());
+        .style(Style::default())
+        .padding(Padding::new(0, 0, frame.area().height / 5, 0));
+    // generated using https://www.asciiart.eu/text-to-ascii-art
     let ascii_text = Paragraph::new(
-        "Placeholder
-|/          (__)    
-     `------(oo)
-       ||    (__)
-       ||w--||     |/
-   |/
+        r"
+
+
+   █████████            █████       ███████       ██████     ██████  ███
+  ███░░░░░███          ░░███      ███░░░░░███    ███░░███   ███░░███░███
+ ███     ░░░   ██████  ███████   ███     ░░███  ░███ ░░░   ░███ ░░░ ░███
+░███          ███░░███░░░███░   ░███      ░███ ███████    ███████   ░███
+░███    █████░███████   ░███    ░███      ░███░░░███░    ░░░███░    ░███
+░░███  ░░███ ░███░░░    ░███ ███░░███     ███   ░███       ░███     ░░░ 
+ ░░█████████ ░░██████   ░░█████  ░░░███████░    █████      █████     ███
+  ░░░░░░░░░   ░░░░░░     ░░░░░     ░░░░░░░     ░░░░░      ░░░░░     ░░░ 
+
 ",
     )
     .centered()
