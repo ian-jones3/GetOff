@@ -90,8 +90,10 @@ fn render_popup(frame: &mut Frame, app: &mut App) {
         // block design for prompt
         let prompt_block = Block::bordered()
             .style(Style::default())
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .title_top("Please enter desired time in minutes:");
 
+        // 2 rects: border is differently sized in order to surround prompt
         let prompt_rect = center(frame.area(), Constraint::Length(50), Constraint::Length(1));
         let prompt_border_rect =
             center(frame.area(), Constraint::Length(60), Constraint::Length(5));
@@ -100,11 +102,7 @@ fn render_popup(frame: &mut Frame, app: &mut App) {
         frame.render_widget(prompt_block, prompt_border_rect);
 
         // Render the prompt itself.
-        TextPrompt::from("Please enter desired time in minutes:").draw(
-            frame,
-            prompt_rect,
-            &mut app.timer_length_state,
-        );
+        TextPrompt::from("").draw(frame, prompt_rect, &mut app.timer_length_state);
     }
 }
 

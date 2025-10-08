@@ -6,6 +6,8 @@ use app::*;
 use tui_widgets::prompts::State;
 use ui::*;
 
+use clap::{Arg, Command, Parser};
+
 // Remember to use crossterm through ratatui's crate!
 use ratatui::{
     Terminal,
@@ -16,12 +18,31 @@ use ratatui::{
 use std::error::Error;
 use std::time::Duration;
 
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
+struct Args {
+    /// Go direct to timer, skipping title
+    #[clap(short = 't', long = "timer")]
+    pub t: bool,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
+    println!("{:?}", args);
+
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
 
     // Start core application cycle
     let mut app = App::new();
+
+    if args.t {
+        app.timer_input_prompt = true;
+        app.current_state = AppState::TimerDisplay;
+        app.edit();
+    }
+
     let mut app_result = run_app(&mut terminal, &mut app);
 
     // restore terminal to original state and return
