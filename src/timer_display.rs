@@ -76,35 +76,27 @@ fn render_timer(frame: &mut Frame, app: &App) {
     frame.render_widget(timer_paragraph, big_text_area); // render timer
 }
 
-// TODO:
-// Fix prompt centering
-// Current implementation is poor. Find way to implement
-// examples provided in ratatui docs:
-// https://ratatui.rs/recipes/layout/center-a-widget/
 fn render_popup(frame: &mut Frame, app: &mut App) {
-    // should have bool which indicates whether or not this should be rendered.
+    // timer input prompt bool used to check whether popup should be
+    // shown.
     if app.timer_input_prompt {
         let border_block = Block::bordered()
             .style(Style::default())
-            .padding(Padding::new(0, 0, frame.area().height / 2, 0))
+            //.padding(Padding::new(0, 0, frame.area().height / 2, 0))
             .title_top("Time Entry");
 
         frame.render_widget(&border_block, frame.area());
-
-        // Make centered rect that prompt will live in
-        // static pixel subtraction is bad but will do for now.
-        let prompt_rect = Rect::new(frame.area().width / 3, frame.area().height / 2, 50, 5);
-
-        // Same rect with slightly different offset to surround prompt
-        let prompt_border_rect =
-            Rect::new(frame.area().width / 3, frame.area().height / 2 - 2, 50, 5);
 
         // block design for prompt
         let prompt_block = Block::bordered()
             .style(Style::default())
             .border_type(BorderType::Rounded);
 
-        // Render the border for the prompt
+        let prompt_rect = center(frame.area(), Constraint::Length(50), Constraint::Length(1));
+        let prompt_border_rect =
+            center(frame.area(), Constraint::Length(60), Constraint::Length(5));
+
+        // render the border around the prompt
         frame.render_widget(prompt_block, prompt_border_rect);
 
         // Render the prompt itself.
@@ -114,4 +106,14 @@ fn render_popup(frame: &mut Frame, app: &mut App) {
             &mut app.timer_length_state,
         );
     }
+}
+
+// ratatui docs provided widget centering solution
+// area = area whose center will be found
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }
