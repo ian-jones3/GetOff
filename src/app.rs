@@ -12,9 +12,12 @@ use timer::Timer;
 use tui_input::Input;
 use tui_input::backend::crossterm::EventHandler;
 
+use crate::app_selection::{ApplicationList, build_app_list};
+
 pub enum AppState {
     Title,
     TimerDisplay,
+    AppSiteSelection,
     Exit,
 }
 
@@ -51,6 +54,7 @@ pub struct App<'a> {
     pub timer_input_prompt: bool,
     pub start_time: Option<Instant>, // track when timer started
     pub trigger_action: TriggerAction,
+    pub application_list: ApplicationList,
 }
 
 impl<'a> App<'a> {
@@ -68,6 +72,10 @@ impl<'a> App<'a> {
             timer_input_prompt: false,
             start_time: None,
             trigger_action: TriggerAction::Shutdown,
+            // this will explode if the app list doesn't build correctly,
+            // but if that happens it probably should (at least at this
+            // early stage of development)
+            application_list: build_app_list().unwrap(),
         }
     }
 

@@ -1,4 +1,6 @@
 mod app;
+mod app_selection;
+mod app_site_screen;
 mod timer_display;
 mod title_screen;
 mod ui;
@@ -18,6 +20,8 @@ use ratatui::{
 use std::error::Error;
 use std::time::Duration;
 
+use crate::app_selection::build_app_list;
+
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 struct Args {
@@ -29,7 +33,9 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    println!("{:?}", args);
+    //only here for quick and dirty testing
+    //
+    //build_app_list();
 
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
@@ -56,7 +62,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
             Err(error) => panic!("ERROR: FAILED TO DRAW FRAME: {error}"),
         }
 
-        // Key event handling
+        // TODO:
+        // Rework key event handling to be cleaner, move out of
+        // this file if possible
+        // Edit/NotEditing dynamic is no longer satisfactory,
+        // need to add more states like for using arrow keys
+        // on list views
         if event::poll(Duration::from_millis(15))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == event::KeyEventKind::Press {
@@ -70,6 +81,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                                 app.timer_input_prompt = true;
                                 app.current_state = AppState::TimerDisplay;
                                 app.edit();
+                            }
+                            KeyCode::Char('a') => {
+                                app.current_state = AppState::AppSiteSelection;
                             }
                             _ => {}
                         },
