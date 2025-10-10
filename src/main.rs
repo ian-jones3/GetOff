@@ -37,11 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Start core application cycle
     let mut app = App::new();
 
-    if args.t {
-        app.timer_input_prompt = true;
-        app.current_state = AppState::TimerDisplay;
-        app.edit();
-    }
+    handle_flags(args, &mut app);
 
     let mut app_result = run_app(&mut terminal, &mut app);
 
@@ -103,4 +99,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
         }
     }
     Ok(())
+}
+
+fn handle_flags(args: Args, app: &mut App) {
+    if args.t {
+        app.timer_input_prompt = true;
+        app.current_state = AppState::TimerDisplay;
+        app.edit();
+    }
 }

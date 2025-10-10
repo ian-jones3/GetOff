@@ -30,13 +30,7 @@ fn render_timer(frame: &mut Frame, app: &App) {
         .style(Style::default())
         .padding(Padding::new(0, 0, frame.area().height / 4, 0));
 
-    // format TimeDelta info for calculations
-    let total_secs_left = app
-        .time_left()
-        .to_string()
-        .strip_non_digits()
-        .parse::<i64>()
-        .unwrap();
+    let total_secs_left = app.time_left();
 
     // calculate hrs/mins/secs left
     let hrs_left = total_secs_left / 3600;

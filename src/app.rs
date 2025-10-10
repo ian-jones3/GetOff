@@ -34,6 +34,7 @@ pub enum InputMode {
 pub enum TriggerAction {
     Shutdown,
     Restart,
+    Close,
     Warn,
 }
 
@@ -105,18 +106,14 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn time_left(&self) -> TimeDelta {
+    pub fn time_left(&self) -> i64 {
         match &self.timer_length {
             Some(time_delta) => {
                 let total_seconds = time_delta.num_seconds();
                 let elapsed_seconds = self.start_time.unwrap().elapsed().as_secs() as i64;
                 let remaining_seconds = total_seconds - elapsed_seconds;
 
-                if remaining_seconds > 0 {
-                    TimeDelta::seconds(remaining_seconds)
-                } else {
-                    TimeDelta::zero()
-                }
+                remaining_seconds
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO RETURN TIME LEFT WHEN NO TIMER RUNNING");
