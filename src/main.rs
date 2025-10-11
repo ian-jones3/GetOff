@@ -20,8 +20,6 @@ use ratatui::{
 use std::error::Error;
 use std::time::Duration;
 
-use crate::app_selection::build_app_list;
-
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 struct Args {
@@ -45,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     handle_flags(args, &mut app);
 
-    let mut app_result = run_app(&mut terminal, &mut app);
+    run_app(&mut terminal, &mut app)?;
 
     // restore terminal to original state and return
     ratatui::restore();

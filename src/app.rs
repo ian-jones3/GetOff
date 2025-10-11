@@ -1,17 +1,12 @@
 use chrono::TimeDelta;
 use ratatui::widgets::ListState;
-use std::{
-    io::{self, Error},
-    process::exit,
-    time::Duration,
-};
+use std::io::{self, Error};
 use tui_widgets::prompts::TextState;
 
 use std::time::Instant;
 use system_shutdown::shutdown;
 use timer::Timer;
 use tui_input::Input;
-use tui_input::backend::crossterm::EventHandler;
 
 use crate::app_selection::{ApplicationList, build_app_list};
 
