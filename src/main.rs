@@ -1,8 +1,14 @@
 mod app;
+mod app_selection;
+mod app_site_screen;
+mod timer_display;
+mod title_screen;
 mod ui;
 use app::*;
-use tui_input::backend::crossterm::EventHandler;
+use tui_widgets::prompts::State;
 use ui::*;
+
+use clap::{Arg, Command, Parser};
 
 // Remember to use crossterm through ratatui's crate!
 use ratatui::{
@@ -12,14 +18,32 @@ use ratatui::{
 };
 
 use std::error::Error;
+use std::time::Duration;
+
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
+struct Args {
+    /// Go direct to timer, skipping title
+    #[clap(short = 't', long = "timer")]
+    pub t: bool,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
+    //only here for quick and dirty testing
+    //
+    //build_app_list();
+
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
 
     // Start core application cycle
     let mut app = App::new();
-    let mut app_result = run_app(&mut terminal, &mut app);
+
+    handle_flags(args, &mut app);
+
+    run_app(&mut terminal, &mut app)?;
 
     // restore terminal to original state and return
     ratatui::restore();
@@ -36,37 +60,71 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
             Err(error) => panic!("ERROR: FAILED TO DRAW FRAME: {error}"),
         }
 
-        // Key event handling
-        let event = event::read()?;
-        if let Event::Key(key) = event {
-            if key.kind == event::KeyEventKind::Press {
-                match app.input_mode {
-                    InputMode::NotEditing => match key.code {
-                        KeyCode::Char('q') => {
-                            println!("Quit out detected, performing a clean exit:");
-                            break;
-                        }
-                        KeyCode::Char('i') => {
-                            app.edit();
-                        }
-                        _ => {}
-                    },
-                    InputMode::Editing => match key.code {
-                        KeyCode::Esc => app.stop_edit(),
-                        KeyCode::Enter => {
-                            let time = app.input.value().parse::<i64>()?;
-                            app.set_timer(time)?;
-                            app.start_timer();
-                            app.stop_edit();
-                        }
-                        // by nesting this handle_event call in braces
-                        // and using ; we can contain the return inside
-                        // this scope, preventing a type mismatch in the
-                        // match statement.
-                        _ => {
-                            app.input.handle_event(&event);
-                        }
-                    },
+        // TODO:
+        // Rework key event handling to be cleaner, move out of
+        // this file if possible
+        // Edit/NotEditing dynamic is no longer satisfactory,
+        // need to add more states like for using arrow keys
+        // on list views
+        if event::poll(Duration::from_millis(15))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == event::KeyEventKind::Press {
+                    match app.input_mode {
+                        InputMode::NotEditing => match key.code {
+                            KeyCode::Char('q') => {
+                                println!("Quit out detected, performing a clean exit:");
+                                break;
+                            }
+                            KeyCode::Char('t') => {
+                                app.timer_input_prompt = true;
+                                app.current_state = AppState::TimerDisplay;
+                                app.edit();
+                            }
+                            KeyCode::Char('a') => {
+                                app.current_state = AppState::AppSiteSelection;
+                                app.input_mode = InputMode::ListScroll;
+                            }
+                            _ => {}
+                        },
+                        InputMode::Editing => match key.code {
+                            KeyCode::Esc => {
+                                app.stop_edit();
+                            }
+                            KeyCode::Enter => {
+                                // pass state to set_timer
+                                let time = app.timer_length_state.value().parse::<i64>()?;
+                                app.set_timer(time)?;
+                                app.start_timer();
+                                app.stop_edit();
+                                app.timer_input_prompt = false;
+                            }
+                            // by nesting this handle_event call in braces
+                            // and using ; we can contain the return inside
+                            // this scope, preventing a type mismatch in the
+                            // match statement.
+                            _ => {
+                                // only functional for modifying timer state
+                                // currently
+                                app.timer_length_state.handle_key_event(key);
+                            }
+                        },
+                        InputMode::ListScroll => match key.code {
+                            KeyCode::Esc => {
+                                app.current_state = AppState::Title;
+                                app.input_mode = InputMode::NotEditing;
+                            }
+                            KeyCode::Enter => {
+                                // select current item
+                            }
+                            KeyCode::Up => {
+                                app.application_list_state.select_previous();
+                            }
+                            KeyCode::Down => {
+                                app.application_list_state.select_next();
+                            }
+                            _ => app.app_list_search_state.handle_key_event(key),
+                        },
+                    }
                 }
             }
         }
@@ -74,12 +132,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    // Check that terminal.draw doesn't error out
-    // when using our ui function
-    fn draw_works() {}
+fn handle_flags(args: Args, app: &mut App) {
+    if args.t {
+        app.timer_input_prompt = true;
+        app.current_state = AppState::TimerDisplay;
+        app.edit();
+    }
 }

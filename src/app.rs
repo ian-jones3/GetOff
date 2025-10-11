@@ -1,18 +1,19 @@
 use chrono::TimeDelta;
-use std::{
-    io::{self, Error},
-    process::exit,
-};
+use ratatui::widgets::ListState;
+use std::io::{self, Error};
+use tui_widgets::prompts::TextState;
 
+use std::time::Instant;
 use system_shutdown::shutdown;
 use timer::Timer;
 use tui_input::Input;
-use tui_input::backend::crossterm::EventHandler;
+
+use crate::app_selection::{ApplicationList, build_app_list};
 
 pub enum AppState {
     Title,
-    TimerInput,
     TimerDisplay,
+    AppSiteSelection,
     Exit,
 }
 
@@ -27,36 +28,59 @@ pub enum EditableValue {
 pub enum InputMode {
     Editing,
     NotEditing,
+    ListScroll,
 }
 
 pub enum TriggerAction {
     Shutdown,
     Restart,
+    Close,
     Warn,
 }
 
-pub struct App {
+// TODO:
+// This state is becoming a disaster, tons of stuff
+// being managed here. Maybe it's reasonable to keep it
+// all here, but it absolutely should be re-evaluated.
+pub struct App<'a> {
     pub current_state: AppState,
-    pub timer: Timer,
-    pub timer_length: Option<TimeDelta>,
+    pub timer: Timer,                    // Timer object
+    pub timer_length: Option<TimeDelta>, // timer length set by user
     pub editing: Option<EditableValue>,
-    pub shutdown: bool,
-    pub input: Input,
-    pub input_mode: InputMode,
+    pub input: Input,          // not in use
+    pub input_mode: InputMode, // tracks if user is typing
+    pub timer_length_state: TextState<'a>,
+    // will need to add more state like this for
+    // applications and websites
+    pub timer_input_prompt: bool,
+    pub start_time: Option<Instant>, // track when timer started
+    pub trigger_action: TriggerAction,
+    pub application_list: ApplicationList,
+    pub application_list_state: ListState,
+    pub app_list_search_state: TextState<'a>,
 }
 
-impl App {
+impl<'a> App<'a> {
     /// new()
     /// Instantiate the App state.
-    pub fn new() -> App {
+    pub fn new() -> App<'a> {
         App {
             current_state: AppState::Title,
             timer: Timer::new(),
             timer_length: None,
             editing: None,
-            shutdown: false,
             input: Input::default(),
             input_mode: InputMode::NotEditing,
+            timer_length_state: TextState::default(),
+            timer_input_prompt: false,
+            start_time: None,
+            trigger_action: TriggerAction::Shutdown,
+            // this will explode if the app list doesn't build correctly,
+            // but if that happens it probably should (at least at this
+            // early stage of development)
+            application_list: build_app_list().unwrap(),
+            application_list_state: ListState::default(),
+            app_list_search_state: TextState::default(),
         }
     }
 
@@ -86,7 +110,8 @@ impl App {
                 self.timer
                     .schedule_with_delay(*time_delta, || App::execute_shutdown())
                     .ignore(); // ignore the guard so the timer doesn't cancel
-                self.current_state = AppState::TimerDisplay;
+                //self.current_state = AppState::TimerDisplay;
+                self.start_time = Some(Instant::now());
             }
             None => {
                 eprint!("ERROR: ATTEMPTED TO START TIMER WITH NO DURATION SET");
@@ -94,12 +119,17 @@ impl App {
         }
     }
 
-    pub fn time_left(&self) -> &TimeDelta {
+    pub fn time_left(&self) -> i64 {
         match &self.timer_length {
-            Some(time_delta) => time_delta,
+            Some(time_delta) => {
+                let total_seconds = time_delta.num_seconds();
+                let elapsed_seconds = self.start_time.unwrap().elapsed().as_secs() as i64;
+                let remaining_seconds = total_seconds - elapsed_seconds;
+
+                remaining_seconds
+            }
             None => {
                 eprint!("ERROR: ATTEMPTED TO RETURN TIME LEFT WHEN NO TIMER RUNNING");
-                // If this ever happens its a goof so bad happened it should definitely crash.
                 panic!()
             }
         }
