@@ -8,7 +8,9 @@ use system_shutdown::shutdown;
 use timer::Timer;
 use tui_input::Input;
 
-use crate::app_selection::{ApplicationList, build_app_list};
+use crate::app_selection::{
+    ApplicationList, FilteredApplicationList, filter_app_list, init_app_list,
+};
 
 pub enum AppState {
     Title,
@@ -58,6 +60,7 @@ pub struct App<'a> {
     pub application_list: ApplicationList,
     pub application_list_state: ListState,
     pub app_list_search_state: TextState<'a>,
+    pub filtered_app_list: FilteredApplicationList,
 }
 
 impl<'a> App<'a> {
@@ -78,9 +81,12 @@ impl<'a> App<'a> {
             // this will explode if the app list doesn't build correctly,
             // but if that happens it probably should (at least at this
             // early stage of development)
-            application_list: build_app_list().unwrap(),
             application_list_state: ListState::default(),
             app_list_search_state: TextState::default(),
+            application_list: init_app_list().unwrap(),
+            filtered_app_list: FilteredApplicationList {
+                application_tuples: vec![],
+            },
         }
     }
 

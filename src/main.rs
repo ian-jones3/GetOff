@@ -15,10 +15,13 @@ use ratatui::{
     Terminal,
     crossterm::event::{self, Event, KeyCode},
     prelude::Backend,
+    widgets::ListState,
 };
 
 use std::error::Error;
 use std::time::Duration;
+
+use crate::app_selection::{AppSelectionStatus, filter_app_list};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
@@ -30,10 +33,6 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-
-    //only here for quick and dirty testing
-    //
-    //build_app_list();
 
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
@@ -113,8 +112,25 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                                 app.current_state = AppState::Title;
                                 app.input_mode = InputMode::NotEditing;
                             }
-                            KeyCode::Enter => {
-                                // select current item
+                            KeyCode::Char(' ') => {
+                                // select/deselect current item
+                                if let Some(i) = app.application_list_state.selected() {
+                                    let master_list_index =
+                                        app.filtered_app_list.application_tuples[i].1;
+                                    // app.application_list.applications[i].status =
+                                    //     match app.application_list.applications[i].status {
+                                    app.application_list.applications[master_list_index].status =
+                                        match app.application_list.applications[master_list_index]
+                                            .status
+                                        {
+                                            AppSelectionStatus::Selected => {
+                                                AppSelectionStatus::NotSelected
+                                            }
+                                            AppSelectionStatus::NotSelected => {
+                                                AppSelectionStatus::Selected
+                                            }
+                                        };
+                                }
                             }
                             KeyCode::Up => {
                                 app.application_list_state.select_previous();
@@ -122,7 +138,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                             KeyCode::Down => {
                                 app.application_list_state.select_next();
                             }
-                            _ => app.app_list_search_state.handle_key_event(key),
+                            KeyCode::Enter => {
+                                // begin
+                            }
+                            _ => {
+                                app.app_list_search_state.handle_key_event(key);
+                                app.filtered_app_list =
+                                    filter_app_list(&app, &app.app_list_search_state);
+                            }
                         },
                     }
                 }
