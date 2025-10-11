@@ -3,7 +3,7 @@ use ratatui::{
     Frame,
     layout::*,
     style::Style,
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, StatefulWidget},
 };
 
 pub fn render_application_list(frame: &mut Frame, app: &mut App) {
@@ -17,7 +17,14 @@ pub fn render_application_list(frame: &mut Frame, app: &mut App) {
         .map(|(i, application)| ListItem::from(application.to_string()))
         .collect();
 
-    let l_widget = List::new(applications).block(Block::bordered().title("Application List:"));
+    let l_widget = List::new(applications)
+        .block(Block::bordered().title("Application List:"))
+        .highlight_symbol("->");
 
-    frame.render_widget(l_widget, frame.area());
+    StatefulWidget::render(
+        l_widget,
+        frame.area(),
+        frame.buffer_mut(),
+        &mut app.application_list_state,
+    );
 }

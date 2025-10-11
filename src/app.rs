@@ -1,4 +1,5 @@
 use chrono::TimeDelta;
+use ratatui::widgets::ListState;
 use std::{
     io::{self, Error},
     process::exit,
@@ -32,6 +33,7 @@ pub enum EditableValue {
 pub enum InputMode {
     Editing,
     NotEditing,
+    ListScroll,
 }
 
 pub enum TriggerAction {
@@ -41,6 +43,10 @@ pub enum TriggerAction {
     Warn,
 }
 
+// TODO:
+// This state is becoming a disaster, tons of stuff
+// being managed here. Maybe it's reasonable to keep it
+// all here, but it absolutely should be re-evaluated.
 pub struct App<'a> {
     pub current_state: AppState,
     pub timer: Timer,                    // Timer object
@@ -55,6 +61,8 @@ pub struct App<'a> {
     pub start_time: Option<Instant>, // track when timer started
     pub trigger_action: TriggerAction,
     pub application_list: ApplicationList,
+    pub application_list_state: ListState,
+    pub app_list_search_state: TextState<'a>,
 }
 
 impl<'a> App<'a> {
@@ -76,6 +84,8 @@ impl<'a> App<'a> {
             // but if that happens it probably should (at least at this
             // early stage of development)
             application_list: build_app_list().unwrap(),
+            application_list_state: ListState::default(),
+            app_list_search_state: TextState::default(),
         }
     }
 

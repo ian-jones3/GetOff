@@ -15,3 +15,4 @@ tui-input = "0.14.0"
 tui-widgets = "0.4.1"
 simple-string-patterns = "0.3.17"
 clap = { version = "4.5.48", features = ["derive"] }
+procfs = "0.18.0"

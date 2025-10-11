@@ -84,11 +84,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                             }
                             KeyCode::Char('a') => {
                                 app.current_state = AppState::AppSiteSelection;
+                                app.input_mode = InputMode::ListScroll;
                             }
                             _ => {}
                         },
                         InputMode::Editing => match key.code {
-                            KeyCode::Esc => app.stop_edit(),
+                            KeyCode::Esc => {
+                                app.stop_edit();
+                            }
                             KeyCode::Enter => {
                                 // pass state to set_timer
                                 let time = app.timer_length_state.value().parse::<i64>()?;
@@ -106,6 +109,22 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                                 // currently
                                 app.timer_length_state.handle_key_event(key);
                             }
+                        },
+                        InputMode::ListScroll => match key.code {
+                            KeyCode::Esc => {
+                                app.current_state = AppState::Title;
+                                app.input_mode = InputMode::NotEditing;
+                            }
+                            KeyCode::Enter => {
+                                // select current item
+                            }
+                            KeyCode::Up => {
+                                app.application_list_state.select_previous();
+                            }
+                            KeyCode::Down => {
+                                app.application_list_state.select_next();
+                            }
+                            _ => app.app_list_search_state.handle_key_event(key),
                         },
                     }
                 }
