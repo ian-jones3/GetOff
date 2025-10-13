@@ -1,6 +1,9 @@
 mod app;
+
 mod app_selection;
 mod app_site_screen;
+mod app_trigger_handling;
+
 mod timer_display;
 mod title_screen;
 mod ui;
@@ -21,7 +24,10 @@ use ratatui::{
 use std::error::Error;
 use std::time::Duration;
 
-use crate::app_selection::{AppSelectionStatus, filter_app_list};
+use crate::{
+    app_selection::{AppSelectionStatus, filter_app_list, finalize_app_list},
+    app_trigger_handling::check_running_processes,
+};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
@@ -33,6 +39,9 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+
+    //TODO: only here for testing
+    //check_running_processes();
 
     // initialize a new DefaultTerminal
     let mut terminal = ratatui::init();
@@ -82,6 +91,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                             KeyCode::Char('a') => {
                                 app.current_state = AppState::AppSiteSelection;
                                 app.input_mode = InputMode::ListScroll;
+                            }
+                            KeyCode::Esc => {
+                                app.current_state = AppState::Title;
                             }
                             _ => {}
                         },
@@ -139,7 +151,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                                 app.application_list_state.select_next();
                             }
                             KeyCode::Enter => {
-                                // begin
+                                app.confirmed_app_list = finalize_app_list(&app);
+                                app.current_state = AppState::AppSiteWatching;
+                                // TODO: won't be the function run by this,
+                                // just here to test
+                                check_running_processes(&app);
                             }
                             _ => {
                                 app.app_list_search_state.handle_key_event(key);

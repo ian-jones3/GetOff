@@ -16,6 +16,7 @@ pub enum AppState {
     Title,
     TimerDisplay,
     AppSiteSelection,
+    AppSiteWatching,
     Exit,
 }
 
@@ -61,6 +62,7 @@ pub struct App<'a> {
     pub application_list_state: ListState,
     pub app_list_search_state: TextState<'a>,
     pub filtered_app_list: FilteredApplicationList,
+    pub confirmed_app_list: ApplicationList,
 }
 
 impl<'a> App<'a> {
@@ -86,6 +88,9 @@ impl<'a> App<'a> {
             application_list: init_app_list().unwrap(),
             filtered_app_list: FilteredApplicationList {
                 application_tuples: vec![],
+            },
+            confirmed_app_list: ApplicationList {
+                applications: vec![],
             },
         }
     }

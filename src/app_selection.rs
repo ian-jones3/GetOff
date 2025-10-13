@@ -98,3 +98,21 @@ pub fn filter_app_list(app: &App, search_state: &TextState) -> FilteredApplicati
         application_tuples: filtered_vec,
     }
 }
+
+pub fn finalize_app_list(app: &App) -> ApplicationList {
+    let mut final_vec: Vec<Application> = vec![];
+    for app in &app.application_list.applications {
+        match app.status {
+            AppSelectionStatus::Selected => {
+                final_vec.push(app.clone());
+            }
+            _ => (),
+        }
+    }
+    ApplicationList {
+        applications: final_vec,
+    }
+    //todo!()
+    // Loop through master application list, adding every application that
+    // is selected to a new Application list which we will then return.
+}

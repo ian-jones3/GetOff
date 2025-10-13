@@ -6,6 +6,7 @@ pub fn render_ui(frame: &mut Frame, app: &mut App) {
         AppState::Title => title_screen::render_title_screen(frame, app),
         AppState::TimerDisplay => timer_display::render_timer_display(frame, app),
         AppState::AppSiteSelection => app_site_screen::render_application_list(frame, app),
+        AppState::AppSiteWatching => app_site_screen::render_watching_screen(frame, app),
         _ => (),
     }
 }
