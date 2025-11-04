@@ -1,6 +1,7 @@
 use crate::App;
 use crate::TriggerAction;
 use ratatui::widgets::BorderType;
+use ratatui::widgets::Paragraph;
 use simple_string_patterns::StripCharacters;
 
 use ratatui::{
@@ -26,9 +27,10 @@ pub fn render_timer_display(frame: &mut Frame, app: &mut App) {
 // Will need refactoring when we start accounting for
 // a variety of window sizes
 fn render_timer(frame: &mut Frame, app: &App) {
-    let timer_block = Block::bordered()
-        .style(Style::default())
-        .padding(Padding::new(0, 0, frame.area().height / 4, 0));
+    // let timer_block = Block::bordered()
+    //     .style(Style::default())
+    //     .padding(Padding::new(0, 0, frame.area().height / 4, 0));
+    let timer_block = Block::bordered().style(Style::default());
 
     let total_secs_left = app.time_left();
 
@@ -49,25 +51,78 @@ fn render_timer(frame: &mut Frame, app: &App) {
     let secs_str = format!("{secs_left} seconds");
     let trigger_str = format!("{trigger}");
 
-    let timer_paragraph = BigText::builder()
-        .pixel_size(PixelSize::Quadrant)
-        .centered()
-        .style(Style::default())
-        .lines(vec![
-            hrs_str.into(),
-            mins_str.into(),
-            secs_str.into(),
-            String::from("remaining").into(),
-            String::from("until").into(),
-            trigger_str.into(),
-        ])
-        .build();
+    // note that height/width is in COLUMNS AND ROWS, not pixels!
+    // TODO:: Add a check for smaller than like 5-6 height that displays
+    // a message saying the terminal is too small.
+    // TODO: Refactor this, it's waaaaaaay more complicated than it needs to be
+    if frame.area().height < 14 {
+        let timer_bigtext = BigText::builder()
+            .pixel_size(PixelSize::Quadrant)
+            .centered()
+            .style(Style::default())
+            //.lines(vec![hrs_str.into(), mins_str.into(), secs_str.into()])
+            .lines(vec![
+                format!("{hrs_left}:{mins_left}:{secs_left}").into(),
+                String::from("remaining").into(),
+            ])
+            .build();
 
-    // get smaller area for big text rendering based on parent block padding
-    let big_text_area = timer_block.inner(frame.area());
+        // get smaller area for big text rendering based on parent block padding,
+        // and make sure it's centered in the window
+        let big_text_area = center(
+            timer_block.inner(frame.area()),
+            Constraint::Length(60),
+            Constraint::Length(15),
+        );
 
-    frame.render_widget(timer_block, frame.area()); // render outline
-    frame.render_widget(timer_paragraph, big_text_area); // render timer
+        frame.render_widget(timer_block, frame.area()); // render outline
+        frame.render_widget(timer_bigtext, big_text_area); // render timer
+    } else if frame.area().height < 25 {
+        let timer_bigtext = BigText::builder()
+            .pixel_size(PixelSize::Quadrant)
+            .centered()
+            .style(Style::default())
+            .lines(vec![hrs_str.into(), mins_str.into(), secs_str.into()])
+            .build();
+
+        // get smaller area for big text rendering based on parent block padding,
+        // and make sure it's centered in the window
+        let big_text_area = center(
+            timer_block.inner(frame.area()),
+            Constraint::Length(60),
+            Constraint::Length(15),
+        );
+
+        frame.render_widget(timer_block, frame.area()); // render outline
+        frame.render_widget(timer_bigtext, big_text_area); // render timer
+    } else {
+        let timer_bigtext = BigText::builder()
+            .pixel_size(PixelSize::Quadrant)
+            .centered()
+            .style(Style::default())
+            .lines(vec![
+                hrs_str.into(),
+                mins_str.into(),
+                secs_str.into(),
+                String::from("remaining").into(),
+                String::from("until").into(),
+                trigger_str.into(),
+            ])
+            .build();
+
+        // get smaller area for big text rendering based on parent block padding,
+        // and make sure it's centered in the window
+        //let big_text_area = timer_block.inner(frame.area());
+
+        let big_text_area = center(
+            timer_block.inner(frame.area()),
+            Constraint::Length(60),
+            Constraint::Length(30),
+        );
+
+        frame.render_widget(timer_block, frame.area()); // render outline
+        frame.render_widget(timer_bigtext, big_text_area); // render timer
+    }
 }
 
 fn render_popup(frame: &mut Frame, app: &mut App) {
