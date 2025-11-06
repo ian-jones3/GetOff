@@ -1,37 +1,34 @@
 use crate::App;
 use crate::TriggerAction;
 use ratatui::widgets::BorderType;
-use ratatui::widgets::Paragraph;
-use simple_string_patterns::StripCharacters;
 
-use ratatui::{
-    Frame,
-    layout::*,
-    style::Style,
-    widgets::{Block, Padding},
-};
+use ratatui::{Frame, layout::*, style::Style, widgets::Block};
 use tui_widgets::big_text::*;
 use tui_widgets::prompts::*;
 
+// -----------------------------
+// render_timer_display
+// Public function called by the app in order to render the
+// timer display. Will do nothing if no timer is set.
 pub fn render_timer_display(frame: &mut Frame, app: &mut App) {
     render_popup(frame, app);
 
-    // put a match statement to make sure a timer is running before
-    // this is called, currently it is triggering panic in App.rs
+    // Do not attempt to render the timer unless the timer_length
+    // variable has been set.
     match app.timer_length {
         Some(_) => render_timer(frame, app),
         None => {}
     }
 }
 
-// Will need refactoring when we start accounting for
-// a variety of window sizes
+// -----------------------------
+// render_timer
+// Will render the text of the timer using BigText.
 fn render_timer(frame: &mut Frame, app: &App) {
-    // let timer_block = Block::bordered()
-    //     .style(Style::default())
-    //     .padding(Padding::new(0, 0, frame.area().height / 4, 0));
+    // Create the block the timer text will be inside
     let timer_block = Block::bordered().style(Style::default());
 
+    // Fetch time left from app state
     let total_secs_left = app.time_left();
 
     // calculate hrs/mins/secs left
@@ -42,6 +39,8 @@ fn render_timer(frame: &mut Frame, app: &App) {
     // get appropriate trigger text
     let trigger = match app.trigger_action {
         TriggerAction::Shutdown => "Shutdown",
+        // More cases will be added in future as more
+        // Trigger actions are implemented.
         _ => "",
     };
 
@@ -51,55 +50,39 @@ fn render_timer(frame: &mut Frame, app: &App) {
     let secs_str = format!("{secs_left} seconds");
     let trigger_str = format!("{trigger}");
 
-    // note that height/width is in COLUMNS AND ROWS, not pixels!
     // TODO:: Add a check for smaller than like 5-6 height that displays
     // a message saying the terminal is too small.
-    // TODO: Refactor this, it's waaaaaaay more complicated than it needs to be
+
+    // Create the big text builder we will use to create our BigText
+    let mut big_text_binding = BigText::builder();
+    let timer_bigtext: &mut BigTextBuilder<'_> = big_text_binding
+        .pixel_size(PixelSize::Quadrant)
+        .centered()
+        .style(Style::default());
+
+    let text: BigText<'_>; // the timer text
+
+    // area the display text will be in
+    let mut big_text_area: Rect = center(
+        timer_block.inner(frame.area()),
+        Constraint::Length(60),
+        Constraint::Length(15),
+    );
+
+    // note that height/width is in COLUMNS AND ROWS, not pixels!
     if frame.area().height < 14 {
-        let timer_bigtext = BigText::builder()
-            .pixel_size(PixelSize::Quadrant)
-            .centered()
-            .style(Style::default())
-            //.lines(vec![hrs_str.into(), mins_str.into(), secs_str.into()])
+        text = timer_bigtext
             .lines(vec![
                 format!("{hrs_left}:{mins_left}:{secs_left}").into(),
                 String::from("remaining").into(),
             ])
             .build();
-
-        // get smaller area for big text rendering based on parent block padding,
-        // and make sure it's centered in the window
-        let big_text_area = center(
-            timer_block.inner(frame.area()),
-            Constraint::Length(60),
-            Constraint::Length(15),
-        );
-
-        frame.render_widget(timer_block, frame.area()); // render outline
-        frame.render_widget(timer_bigtext, big_text_area); // render timer
     } else if frame.area().height < 25 {
-        let timer_bigtext = BigText::builder()
-            .pixel_size(PixelSize::Quadrant)
-            .centered()
-            .style(Style::default())
+        text = timer_bigtext
             .lines(vec![hrs_str.into(), mins_str.into(), secs_str.into()])
             .build();
-
-        // get smaller area for big text rendering based on parent block padding,
-        // and make sure it's centered in the window
-        let big_text_area = center(
-            timer_block.inner(frame.area()),
-            Constraint::Length(60),
-            Constraint::Length(15),
-        );
-
-        frame.render_widget(timer_block, frame.area()); // render outline
-        frame.render_widget(timer_bigtext, big_text_area); // render timer
     } else {
-        let timer_bigtext = BigText::builder()
-            .pixel_size(PixelSize::Quadrant)
-            .centered()
-            .style(Style::default())
+        text = timer_bigtext
             .lines(vec![
                 hrs_str.into(),
                 mins_str.into(),
@@ -110,21 +93,23 @@ fn render_timer(frame: &mut Frame, app: &App) {
             ])
             .build();
 
-        // get smaller area for big text rendering based on parent block padding,
-        // and make sure it's centered in the window
-        //let big_text_area = timer_block.inner(frame.area());
-
-        let big_text_area = center(
+        // Different constraint needed for this type of display
+        // To center cleanly.
+        big_text_area = center(
             timer_block.inner(frame.area()),
             Constraint::Length(60),
             Constraint::Length(30),
         );
-
-        frame.render_widget(timer_block, frame.area()); // render outline
-        frame.render_widget(timer_bigtext, big_text_area); // render timer
     }
+
+    // Execute the renders.
+    frame.render_widget(timer_block, frame.area()); // render outline
+    frame.render_widget(text, big_text_area); // render timer
 }
 
+// -----------------------------
+// render_popup
+// Renders the prompt in which the user can enter their desired timer.
 fn render_popup(frame: &mut Frame, app: &mut App) {
     // timer input prompt bool used to check whether popup should be
     // shown.
@@ -142,7 +127,7 @@ fn render_popup(frame: &mut Frame, app: &mut App) {
             .border_type(BorderType::Rounded)
             .title_top("Please enter desired time in minutes:");
 
-        // 2 rects: border is differently sized in order to surround prompt
+        // 2 rects: prompt_border_rect is differently sized in order to surround prompt_rect
         let prompt_rect = center(frame.area(), Constraint::Length(50), Constraint::Length(1));
         let prompt_border_rect =
             center(frame.area(), Constraint::Length(60), Constraint::Length(5));
@@ -156,7 +141,7 @@ fn render_popup(frame: &mut Frame, app: &mut App) {
 }
 
 // ratatui docs provided widget centering solution
-// area = area whose center will be found
+// area = area whose center will be found i.e frame.area()
 fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
     let [area] = Layout::horizontal([horizontal])
         .flex(Flex::Center)
